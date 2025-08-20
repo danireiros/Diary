@@ -19,8 +19,8 @@ class OccurrenceController extends Controller
             'category_ids.*' => ['string','exists:categories,id'],
         ]);
 
-        $start = CarbonImmutable::parse($validated['start'], 'Atlantic/Canary');
-        $end = CarbonImmutable::parse($validated['end'], 'Atlantic/Canary');
+        $start = CarbonImmutable::parse($validated['start']);
+        $end = CarbonImmutable::parse($validated['end']);
 
         $query = Task::query();
         if (!empty($validated['category_ids'])) {

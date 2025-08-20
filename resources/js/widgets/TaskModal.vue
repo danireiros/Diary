@@ -54,6 +54,7 @@
 
 <script setup>
 import { reactive, ref, computed } from 'vue'
+import { format } from 'date-fns'
 const props = defineProps({ categories: Array, initial: Object })
 const emit = defineEmits(['save','close'])
 
@@ -79,19 +80,20 @@ function save(){
     status: status.value,
   }
   let payload
+  const toMysqlLocal = (d)=> format(new Date(d), 'yyyy-MM-dd HH:mm:ss')
   if(rec.freq){
     payload = {
       ...base,
-      start_at: new Date(startDT.value).toISOString().slice(0,19).replace('T',' '),
-      end_at: new Date(new Date(startDT.value).getTime() + (durationMinutes.value||60)*60000).toISOString().slice(0,19).replace('T',' '),
+      start_at: toMysqlLocal(startDT.value),
+      end_at: toMysqlLocal(new Date(new Date(startDT.value).getTime() + (durationMinutes.value||60)*60000)),
       duration_minutes: durationMinutes.value,
       recurrence_json: rec,
     }
   } else {
     payload = {
       ...base,
-      start_at: new Date(startDT.value).toISOString().slice(0,19).replace('T',' '),
-      end_at: new Date(endDT.value).toISOString().slice(0,19).replace('T',' '),
+      start_at: toMysqlLocal(startDT.value),
+      end_at: toMysqlLocal(endDT.value),
       duration_minutes: durationMinutes.value,
       recurrence_json: null,
     }

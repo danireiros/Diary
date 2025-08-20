@@ -100,6 +100,15 @@ class RecurrenceService
 
     private function formatOccurrence(Task $task, CarbonImmutable $start, CarbonImmutable $end): array
     {
+        // Normalize all-day occurrences to avoid timezone day-shift issues in UIs
+        if ((bool) $task->all_day) {
+            $startLocal = $start->shiftTimezone('Atlantic/Canary')->startOfDay();
+            $endLocal = $end->shiftTimezone('Atlantic/Canary')->endOfDay();
+            // Emit at 12:00 UTC to make it safe across timezones
+            $start = $startLocal->shiftTimezone('UTC')->setTime(12, 0);
+            $end = $endLocal->shiftTimezone('UTC')->setTime(12, 0);
+        }
+
         return [
             'task' => (new \App\Http\Resources\TaskResource($task))->toArray(request()),
             'start' => $start->toIso8601String(),

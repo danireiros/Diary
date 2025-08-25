@@ -40,6 +40,27 @@ class RecurrenceService
         $end = $baseEnd ?? $baseStart;
         $occurrenceNum = 0;
 
+        // Never generate occurrences before the later of baseStart and the requested rangeStart
+        $durationSeconds = $end->diffInSeconds($start);
+        if ($rangeStart->gt($start)) {
+            $start = $rangeStart->setTimeFromTimeString($baseStart->toTimeString());
+            $end = $start->addSeconds($durationSeconds);
+        }
+
+        // Align the first occurrence to the next valid date on/after baseStart
+        if ($freq === 'WEEKLY' && is_array($byWeekday) && count($byWeekday) > 0) {
+            $aligned = $this->alignToWeekday($start, $byWeekday);
+            $diffDays = $aligned->diffInDays($start);
+            $start = $start->addDays($diffDays);
+            $end = $end->addDays($diffDays);
+        }
+        if ($freq === 'MONTHLY' && is_array($byMonthDay) && count($byMonthDay) > 0) {
+            $aligned = $this->alignToMonthDay($start, $byMonthDay);
+            $diffDays = $aligned->diffInDays($start);
+            $start = $start->addDays($diffDays);
+            $end = $end->addDays($diffDays);
+        }
+
         while ($max-- > 0) {
             if ($until && $start->gt($until)) break;
             if ($count && $occurrenceNum >= $count) break;
@@ -57,11 +78,17 @@ class RecurrenceService
                     break;
                 case 'WEEKLY':
                     if (is_array($byWeekday) && count($byWeekday) > 0) {
-                        // Advance to next listed weekday
-                        $next = $this->advanceToNextWeekday($start, $byWeekday, $interval);
-                        $diffDays = $next->diffInDays($start);
-                        $start = $start->addDays($diffDays);
-                        $end = $end->addDays($diffDays);
+                        // Step forward day-by-day until reaching an allowed weekday and week that matches the interval
+                        $allowed = array_values(array_map('intval', $byWeekday));
+                        sort($allowed);
+                        $anchorWeekStart = $baseStart->startOfDay()->subDays((int) $baseStart->dayOfWeek);
+                        do {
+                            $start = $start->addDay();
+                            $end = $end->addDay();
+                            $dow = (int) $start->dayOfWeek; // 0=Sun..6=Sat
+                            $candWeekStart = $start->startOfDay()->subDays($dow);
+                            $weeksDiff = $anchorWeekStart->diffInWeeks($candWeekStart);
+                        } while (!in_array($dow, $allowed, true) || ($weeksDiff % $interval !== 0));
                     } else {
                         $start = $start->addWeeks($interval);
                         $end = $end->addWeeks($interval);
@@ -127,7 +154,7 @@ class RecurrenceService
         sort($weekdays);
         $currentDow = (int) $current->dayOfWeek; // 0=Sun
         foreach ($weekdays as $d) {
-            if ($d >= $currentDow) {
+            if ($d > $currentDow) {
                 return $current->startOfDay()->addDays($d - $currentDow)->setTimeFromTimeString($current->toTimeString());
             }
         }
@@ -137,7 +164,52 @@ class RecurrenceService
         return $current->startOfDay()->addDays($days)->setTimeFromTimeString($current->toTimeString());
     }
 
+    private function nextWeeklyOccurrence(CarbonImmutable $current, array $weekdays, int $interval): CarbonImmutable
+    {
+        // Returns the next occurrence strictly after $current on the allowed weekdays.
+        sort($weekdays);
+        $currentDow = (int) $current->dayOfWeek; // 0=Sun..6=Sat
+        foreach ($weekdays as $d) {
+            if ($d > $currentDow) {
+                return $current->startOfDay()->addDays($d - $currentDow)->setTimeFromTimeString($current->toTimeString());
+            }
+        }
+        // Jump to the first allowed weekday in the next interval week block
+        $first = (int) $weekdays[0];
+        $days = (7 - $currentDow) + $first + 7 * ($interval - 1);
+        return $current->startOfDay()->addDays($days)->setTimeFromTimeString($current->toTimeString());
+    }
+
     private function advanceToNextMonthDay(CarbonImmutable $current, array $monthDays, int $interval): CarbonImmutable
+    {
+        sort($monthDays);
+        $dom = (int) $current->day;
+        foreach ($monthDays as $d) {
+            if ($d > $dom && $d <= $current->daysInMonth) {
+                return $current->setDay($d);
+            }
+        }
+        // next interval months to first day
+        $first = (int) $monthDays[0];
+        $next = $current->addMonths($interval)->setDay(min($first, $current->addMonths($interval)->daysInMonth));
+        return $next;
+    }
+
+    private function alignToWeekday(CarbonImmutable $current, array $weekdays): CarbonImmutable
+    {
+        sort($weekdays);
+        $currentDow = (int) $current->dayOfWeek; // 0=Sun
+        foreach ($weekdays as $d) {
+            if ($d >= $currentDow) {
+                return $current->startOfDay()->addDays($d - $currentDow)->setTimeFromTimeString($current->toTimeString());
+            }
+        }
+        $first = (int) $weekdays[0];
+        $days = (7 - $currentDow) + $first;
+        return $current->startOfDay()->addDays($days)->setTimeFromTimeString($current->toTimeString());
+    }
+
+    private function alignToMonthDay(CarbonImmutable $current, array $monthDays): CarbonImmutable
     {
         sort($monthDays);
         $dom = (int) $current->day;
@@ -146,10 +218,8 @@ class RecurrenceService
                 return $current->setDay($d);
             }
         }
-        // next interval months to first day
         $first = (int) $monthDays[0];
-        $next = $current->addMonths($interval)->setDay(min($first, $current->addMonths($interval)->daysInMonth));
-        return $next;
+        return $current->addMonth()->setDay(min($first, $current->addMonth()->daysInMonth));
     }
 }
 

@@ -24,7 +24,7 @@
         </template>
       </div>
       <div class="px-4 pb-4">
-        <div class="mt-2 p-3 rounded-xl border dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+        <div class="mt-2 p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
           <div class="flex items-center gap-3 flex-wrap">
             <label class="text-sm font-medium">Repetición</label>
             <select class="border dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-900" v-model="rec.freq"><option value="">Sin repetición</option><option value="DAILY">Diaria</option><option value="WEEKLY">Semanal</option><option value="MONTHLY">Mensual</option></select>
@@ -46,7 +46,7 @@
             <input class="border dark:border-gray-700 rounded-lg px-2 py-1 w-full mt-1 bg-white dark:bg-gray-900" placeholder="Ej: 1, 15, 30" v-model="byMonthDayStr" />
           </div>
         </div>
-        <div class="mt-4 flex items-center justify-end gap-2"><button class="px-3 py-2 rounded-xl border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700" @click="$emit('close')">Cancelar</button><button class="px-3 py-2 rounded-xl border dark:border-gray-700 bg-gray-900 text-white" @click="save">Guardar</button></div>
+        <div class="mt-4 flex items-center justify-end gap-2"><button class="px-3 py-2 rounded-xl bg-indigo-600 text-white" @click="$emit('close')">Cancelar</button><button class="px-3 py-2 rounded-xl bg-indigo-600 text-white" @click="save">Guardar</button></div>
       </div>
     </div>
   </div>

@@ -1,15 +1,15 @@
 <template>
   <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
     <div class="lg:col-span-3 space-y-4">
-      <div class="flex items-center justify-between gap-2 p-3 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-2xl shadow-sm">
+      <div class="flex items-center justify-between gap-2 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm">
         <div class="flex items-center gap-2">
-          <button class="px-3 py-2 rounded-xl border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700" @click="goToday">Hoy</button>
-          <button class="px-3 py-2 rounded-xl border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700" @click="step(-1)">◀</button>
-          <button class="px-3 py-2 rounded-xl border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700" @click="step(1)">▶</button>
+          <button class="px-3 py-2 rounded-xl bg-indigo-600 text-white" @click="goToday">Hoy</button>
+          <button class="px-3 py-2 rounded-xl bg-indigo-600 text-white" @click="step(-1)">◀</button>
+          <button class="px-3 py-2 rounded-xl bg-indigo-600 text-white" @click="step(1)">▶</button>
           <div class="font-semibold ml-2 text-lg">{{ title }}</div>
         </div>
         <div class="flex items-center gap-2">
-          <button v-for="v in views" :key="v.k" class="px-3 py-2 rounded-xl border dark:border-gray-700" :class="{ 'bg-gray-900 text-white': view===v.k }" @click="view=v.k">{{ v.label }}</button>
+          <button v-for="v in views" :key="v.k" class="px-3 py-2 rounded-xl" :class="{ 'bg-indigo-600 text-white': view===v.k, 'bg-indigo-600/70 text-white': view!==v.k }" @click="view=v.k">{{ v.label }}</button>
         </div>
       </div>
 
@@ -17,7 +17,7 @@
     </div>
     <div class="space-y-4">
       <div class="p-3 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-2xl shadow-sm">
-        <div class="flex items-center justify-between mb-2"><h3 class="font-semibold">Tareas</h3><button class="px-2 py-1 text-xs rounded-lg border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700" @click="openNew">Nueva</button></div>
+        <div class="flex items-center justify-between mb-2"><h3 class="font-semibold">Tareas</h3><button class="px-3 py-2 rounded-xl bg-indigo-600 text-white" @click="openNew">Nueva</button></div>
         <div class="space-y-2 max-h-[420px] overflow-auto pr-1">
           <div v-for="o in occurrences.slice(0,150)" :key="o.task.id + o.start" class="border dark:border-gray-700 rounded-xl p-2 flex items-center justify-between" :class="{ 'opacity-50': new Date(o.end) < now }">
             <div class="cursor-pointer" @click="openEdit(o.task)">
@@ -33,8 +33,8 @@
                 <option value="pending">Pendiente</option>
                 <option value="done">Finalizada</option>
               </select>
-              <button class="px-2 py-1 text-xs rounded-lg border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700" @click="openEdit(o.task)">Editar</button>
-              <button class="px-2 py-1 text-xs rounded-lg border dark:border-gray-700 hover:bg-red-50 text-red-600" @click="remove(o.task.id)">Borrar</button>
+              <button class="px-3 py-2 rounded-xl bg-indigo-600 text-white" @click="openEdit(o.task)">Editar</button>
+              <button class="px-3 py-2 rounded-xl bg-indigo-600 text-white" @click="askRemove(o.task.id, o.task.title)">Borrar</button>
             </div>
           </div>
           <div v-if="occurrences.length===0" class="text-sm text-gray-500">No hay tareas en el rango visible.</div>
@@ -46,6 +46,7 @@
 
     <TaskModal v-if="showForm" :categories="categories" :initial="editing" @close="showForm=false" @save="onSave" />
   </div>
+  <ConfirmModal v-if="confirming.show" :title="'Eliminar tarea'" :message="`Vas a eliminar: ${confirming.title}`" confirm-label="Eliminar" confirm-word="ELIMINAR" @confirm="confirmRemove" @close="confirming.show=false" />
 </template>
 
 <script setup>
@@ -60,6 +61,7 @@ import WeekView from '../widgets/WeekView.vue'
 import MonthView from '../widgets/MonthView.vue'
 import CategoryFilter from '../widgets/CategoryFilter.vue'
 import CategoryManager from '../widgets/CategoryManager.vue'
+import ConfirmModal from '../ui/ConfirmModal.vue'
 
 const categoriesStore = useCategoriesStore()
 const tasksStore = useTasksStore()
@@ -97,12 +99,14 @@ function categoryColor(id){ return categories.value.find(c=>c.id===id)?.color ||
 const showForm = ref(false)
 const editing = ref(null)
 const statusMap = ref({})
+const confirming = ref({ show: false, id: null, title: '' })
 
 function openNew(){ editing.value = null; showForm.value = true }
 function openEdit(task){ editing.value = task; showForm.value = true }
 async function onSave(payload){ if(payload.id){ await tasksStore.update(payload.id, payload) } else { await tasksStore.create(payload) } showForm.value=false; await refresh() }
 async function updateStatus(task){ await tasksStore.update(task.id, { status: statusMap.value[task.id] }); await refresh() }
-async function remove(id){ await tasksStore.remove(id); await refresh() }
+function askRemove(id, title){ confirming.value = { show: true, id, title } }
+async function confirmRemove(){ if(confirming.value.id){ await tasksStore.remove(confirming.value.id); confirming.value = { show:false, id:null, title:'' }; await refresh() } }
 
 function selectedCategoryIds(){ const ids = categories.value.filter(c=> catFilter.value[c.id] !== false).map(c=>c.id); return ids }
 

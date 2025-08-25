@@ -1,12 +1,12 @@
 <template>
-  <div class="border dark:border-gray-700 rounded-2xl bg-white dark:bg-gray-800 overflow-hidden">
-    <div class="grid grid-cols-7 bg-gray-50 dark:bg-gray-900/50 border-b dark:border-gray-700 text-xs font-medium">
-      <div v-for="d in ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']" :key="d" class="px-2 py-2 border-l dark:border-gray-700 first:border-l-0">{{ d }}</div>
+  <div class="border border-gray-200 dark:border-gray-700 rounded-2xl bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="grid grid-cols-7 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 text-xs font-medium">
+      <div v-for="d in ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']" :key="d" class="px-2 py-2 border-l border-gray-200 dark:border-gray-700 first:border-l-0">{{ d }}</div>
     </div>
     <div>
-      <div v-for="(week,wi) in weeks" :key="wi" class="relative border-b dark:border-gray-700">
+      <div v-for="(week,wi) in weeks" :key="wi" class="relative border-b border-gray-200 dark:border-gray-700">
         <div class="grid grid-cols-7">
-          <div v-for="(d,di) in week" :key="di" class="h-24 p-1 border-l dark:border-gray-700 first:border-l-0 relative" :class="cellClass(d)">
+          <div v-for="(d,di) in week" :key="di" class="h-24 p-1 border-l border-gray-200 dark:border-gray-700 first:border-l-0 relative" :class="cellClass(d)">
             <div class="text-xs text-gray-500">{{ d.getDate() }}</div>
             <div class="mt-1 space-y-1">
               <div v-for="o in daySingles(d)" :key="chipKey(o, d)" class="text-[10px] rounded px-1 py-0.5 text-white truncate cursor-pointer" :class="{ 'opacity-50': o.end < now }" :style="{ backgroundColor: categoryColor(o) }" @click="$emit('taskClick', o.task)">
